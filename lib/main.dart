@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() => runApp(const GameCenterApp());
 
@@ -25,8 +26,8 @@ class GameCenterApp extends StatelessWidget {
 }
 
 class Game {
-  Game(this.name, this.category, this.emoji, this.colors, {this.description = 'משחק מהנה שמחכה לך'});
-  final String name, category, emoji, description;
+  Game(this.name, this.category, this.emoji, this.colors, this.url, {this.description = 'משחק מהנה שמחכה לך'});
+  final String name, category, emoji, description, url;
   final List<Color> colors;
 }
 
@@ -39,22 +40,34 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final search = TextEditingController();
   String category = 'הכול';
-  final categories = ['הכול', 'חשיבה', 'פעולה', 'מרוצים', 'ספורט', 'הרפתקאות', 'ילדים'];
+  final categories = ['הכול', 'חשיבה', 'קלפים', 'אסטרטגיה', 'יצירה', 'מילים', 'עוד'];
   final games = <Game>[
-    Game('מרוץ החלל', 'מרוצים', '🚀', [Color(0xFF2563EB), Color(0xFF7C3AED)], description: 'טוסו בין כוכבים ואתגרים'),
-    Game('אתגר המוח', 'חשיבה', '🧩', [Color(0xFF0F9D8A), Color(0xFF22C55E)], description: 'חדדו את החשיבה עם חידות'),
-    Game('זירת הגיבורים', 'פעולה', '⚔️', [Color(0xFFEA580C), Color(0xFFDC2626)], description: 'הרפתקה מלאה באקשן'),
-    Game('כוכב הכדורסל', 'ספורט', '🏀', [Color(0xFFEA8A16), Color(0xFFB45309)], description: 'קלעו לסל ושברו שיאים'),
-    Game('אי ההרפתקאות', 'הרפתקאות', '🏝️', [Color(0xFF0891B2), Color(0xFF2563EB)], description: 'גלו עולם חדש ומסתורי'),
-    Game('עולם החיות', 'ילדים', '🦊', [Color(0xFFDB2777), Color(0xFF9333EA)], description: 'משחק צבעוני לכל המשפחה'),
-    Game('קפיצת הנינג׳ה', 'פעולה', '🥷', [Color(0xFF475569), Color(0xFF7C3AED)]),
-    Game('פאזל הצבעים', 'חשיבה', '🎨', [Color(0xFF0D9488), Color(0xFF0EA5E9)]),
+    Game('סוליטר', 'קלפים', '🃏', [Color(0xFF2563EB), Color(0xFF7C3AED)], 'https://www.mattegames.com/games/solitaire/', description: 'משחק קלפים קלאסי'),
+    Game('סודוקו', 'חשיבה', '🔢', [Color(0xFF0F9D8A), Color(0xFF22C55E)], 'https://www.mattegames.com/games/sudoku/', description: 'חדדו את החשיבה עם מספרים'),
+    Game('שחמט', 'אסטרטגיה', '♟️', [Color(0xFFEA580C), Color(0xFFDC2626)], 'https://www.mattegames.com/games/chess/', description: 'שחקו שחמט נגד המחשב'),
+    Game('שולה מוקשים', 'חשיבה', '💣', [Color(0xFF475569), Color(0xFF7C3AED)], 'https://www.mattegames.com/games/minesweeper/', description: 'משחק היגיון קלאסי'),
+    Game('2048', 'חשיבה', '🔢', [Color(0xFF0891B2), Color(0xFF2563EB)], 'https://www.mattegames.com/games/2048/', description: 'מזגו מספרים והגיעו ל־2048'),
+    Game('צביעה לפי מספרים', 'יצירה', '🎨', [Color(0xFFDB2777), Color(0xFF9333EA)], 'https://www.mattegames.com/games/coloring/', description: 'צבעו תמונות לפי מספרים'),
+    Game('אתגר מילים יומי', 'מילים', '🔤', [Color(0xFF0D9488), Color(0xFF0EA5E9)], 'https://www.mattegames.com/games/matte/', description: 'אתגר מילים בסגנון Wordle'),
+    Game('עוד משחקים', 'עוד', '🎮', [Color(0xFF6D28D9), Color(0xFF0891B2)], 'https://www.mattegames.com/', description: 'גלו משחקים נוספים בחינם'),
   ];
 
   List<Game> get visible => games.where((g) =>
     (category == 'הכול' || g.category == category) &&
-    ('\${g.name} \${g.category}'.toLowerCase().contains(search.text.toLowerCase()))
+    ('${g.name} ${g.category}'.toLowerCase().contains(search.text.toLowerCase()))
   ).toList();
+
+  Future<void> openGame(Game game) async {
+    final uri = Uri.tryParse(game.url);
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('קישור המשחק אינו תקין')));
+      return;
+    }
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('לא הצלחנו לפתוח את המשחק. נסו שוב.')));
+    }
+  }
 
   void addGame() {
     final name = TextEditingController();
@@ -67,13 +80,18 @@ class _HomePageState extends State<HomePage> {
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           TextField(controller: name, decoration: const InputDecoration(labelText: 'שם המשחק')),
           const SizedBox(height: 10),
-          TextField(controller: link, decoration: const InputDecoration(labelText: 'קישור למשחק (לא חובה)')),
+          TextField(controller: link, keyboardType: TextInputType.url, decoration: const InputDecoration(labelText: 'קישור למשחק (מתחיל ב־https://)')),
         ]),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ביטול')),
           FilledButton(onPressed: () {
-            if (name.text.trim().isNotEmpty) setState(() => games.insert(0, Game(name.text.trim(), 'חשיבה', '🎮', [accent, const Color(0xFF2563EB)])));
-            Navigator.pop(ctx);
+            final uri = Uri.tryParse(link.text.trim());
+            if (name.text.trim().isNotEmpty && uri != null && (uri.scheme == 'https' || uri.scheme == 'http') && uri.host.isNotEmpty) {
+              setState(() => games.insert(0, Game(name.text.trim(), 'עוד', '🎮', [accent, const Color(0xFF2563EB)], uri.toString())));
+              Navigator.pop(ctx);
+            } else {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('יש להזין שם וקישור תקין שמתחיל ב־https://')));
+            }
           }, child: const Text('הוספה')),
         ],
       ),
@@ -127,7 +145,7 @@ class _HomePageState extends State<HomePage> {
                       decoration: BoxDecoration(color: Colors.white.withValues(alpha: .12), borderRadius: BorderRadius.circular(30)),
                       child: const Text('🎮  ברוכים הבאים ל־GameCenter', style: TextStyle(fontSize: 12))),
                     const SizedBox(height: 15),
-                    Text('המשחק הבא שלך\\nמתחיל כאן', style: TextStyle(fontSize: wide ? 35 : 29, height: 1.15, fontWeight: FontWeight.w900)),
+                    Text('המשחק הבא שלך\nמתחיל כאן', style: TextStyle(fontSize: wide ? 35 : 29, height: 1.15, fontWeight: FontWeight.w900)),
                     const SizedBox(height: 9),
                     const Text('מגלים, משחקים ונהנים — כל עולם הגיימינג במקום אחד.', style: TextStyle(color: Color(0xFFD1D5E8), fontSize: 14)),
                     const SizedBox(height: 19),
@@ -158,8 +176,8 @@ class _HomePageState extends State<HomePage> {
                   labelStyle: TextStyle(color: category == categories[i] ? Colors.white : const Color(0xFFCBD5E1), fontWeight: FontWeight.w600)))),
               const SizedBox(height: 25),
               Row(children: [
-                const Text('🔥  משחקים מומלצים', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
-                const Spacer(), Text('\${visible.length} משחקים', style: const TextStyle(color: muted, fontSize: 12)),
+                const Text('🎮  המשחקים שלנו', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                const Spacer(), Text('${visible.length} משחקים', style: const TextStyle(color: muted, fontSize: 12)),
               ]),
               const SizedBox(height: 14),
             ]),
@@ -170,11 +188,7 @@ class _HomePageState extends State<HomePage> {
               final count = width > 900 ? 4 : width > 580 ? 3 : 2;
               return SliverGrid(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: count, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: wide ? 1.13 : .91),
-                delegate: SliverChildBuilderDelegate((ctx, i) => GameCard(game: visible[i], onTap: () => showDialog(context: context, builder: (ctx) => AlertDialog(
-                  backgroundColor: panel, title: Text(visible[i].name),
-                  content: Text('\${visible[i].description}.\\n\\nאפשר לחבר כאן את קישור המשחק ולפתוח אותו מתוך GameCenter.'),
-                  actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('סגירה'))],
-                ))), childCount: visible.length),
+                delegate: SliverChildBuilderDelegate((ctx, i) => GameCard(game: visible[i], onTap: () => openGame(visible[i])), childCount: visible.length),
               );
             }),
           ),
@@ -207,7 +221,7 @@ class GameCard extends StatelessWidget {
           Text(game.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
           const SizedBox(height: 3), Text(game.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: muted, fontSize: 10)),
         ])),
-        const SizedBox(width: 5), const Icon(Icons.play_circle_fill_rounded, color: Color(0xFFA78BFA), size: 25),
+        const SizedBox(width: 5), const Icon(Icons.open_in_new_rounded, color: Color(0xFFA78BFA), size: 22),
       ])),
     ])),
   );
