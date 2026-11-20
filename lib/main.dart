@@ -38,11 +38,7 @@ class TasksHomePage extends StatefulWidget {
 }
 
 class _TasksHomePageState extends State<TasksHomePage> {
-  final List<TaskItem> _tasks = [
-    TaskItem('לסדר את שולחן העבודה'),
-    TaskItem('לסיים שיעורי בית'),
-    TaskItem('לקרוא במשך 20 דקות'),
-  ];
+  final List<TaskItem> _tasks = [];
   TaskFilter _filter = TaskFilter.all;
 
   int get _completedCount => _tasks.where((task) => task.isDone).length;
