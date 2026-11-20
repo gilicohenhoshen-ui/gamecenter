@@ -45,7 +45,7 @@ class _HomePageState extends State<HomePage> {
     Game('סוליטר', 'קלפים', '🃏', [Color(0xFF2563EB), Color(0xFF7C3AED)], 'https://www.mattegames.com/games/solitaire/', description: 'משחק קלפים קלאסי'),
     Game('סודוקו', 'חשיבה', '🔢', [Color(0xFF0F9D8A), Color(0xFF22C55E)], 'https://www.mattegames.com/games/sudoku/', description: 'חדדו את החשיבה עם מספרים'),
     Game('שחמט', 'אסטרטגיה', '♟️', [Color(0xFFEA580C), Color(0xFFDC2626)], 'https://www.mattegames.com/games/chess/', description: 'שחקו שחמט נגד המחשב'),
-    Game('שולה מוקשים', 'חשיבה', '💣', [Color(0xFF475569), Color(0xFF7C3AED)], 'https://www.mattegames.com/games/minesweeper/', description: 'משחק היגיון קלאסי'),
+    Game('ארקייד וזריזות', 'עוד', '🐍', [Color(0xFF475569), Color(0xFF7C3AED)], 'https://visu.network/games/', description: 'גלו משחקי ארקייד וזריזות'),
     Game('2048', 'חשיבה', '🔢', [Color(0xFF0891B2), Color(0xFF2563EB)], 'https://www.mattegames.com/games/2048/', description: 'מזגו מספרים והגיעו ל־2048'),
     Game('צביעה לפי מספרים', 'יצירה', '🎨', [Color(0xFFDB2777), Color(0xFF9333EA)], 'https://www.mattegames.com/games/coloring/', description: 'צבעו תמונות לפי מספרים'),
     Game('אתגר מילים יומי', 'מילים', '🔤', [Color(0xFF0D9488), Color(0xFF0EA5E9)], 'https://www.mattegames.com/games/matte/', description: 'אתגר מילים בסגנון Wordle'),
