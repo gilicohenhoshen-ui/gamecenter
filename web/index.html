@@ -10,6 +10,27 @@
   <title>GameCenter — מרכז המשחקים</title>
 </head>
 <body>
-  <script src="flutter_bootstrap.js" async></script>
+  <script>
+    // Remove an older Flutter service worker/cache that may keep showing the
+    // previous task-manager app after a successful GitHub Pages deployment.
+    (async () => {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations
+          .filter((registration) => new URL(registration.scope).pathname.startsWith('/gamecenter/'))
+          .map((registration) => registration.unregister()));
+      }
+      if ('caches' in window) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames
+          .filter((name) => /flutter|gamecenter/i.test(name))
+          .map((name) => caches.delete(name)));
+      }
+      const bootstrap = document.createElement('script');
+      bootstrap.src = 'flutter_bootstrap.js?v=gamecenter-20261120-2';
+      bootstrap.async = true;
+      document.body.appendChild(bootstrap);
+    })();
+  </script>
 </body>
 </html>
