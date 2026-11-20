@@ -1,3 +1,6 @@
+import 'dart:html' as html;
+import 'dart:ui_web' as ui_web;
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -59,14 +62,13 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> openGame(Game game) async {
     final uri = Uri.tryParse(game.url);
-    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http')) {
+    if (uri == null || (uri.scheme != 'https' && uri.scheme != 'http') || uri.host.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('קישור המשחק אינו תקין')));
       return;
     }
-    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!opened && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('לא הצלחנו לפתוח את המשחק. נסו שוב.')));
-    }
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => GamePlayerPage(game: game),
+    ));
   }
 
   void addGame() {
@@ -196,6 +198,87 @@ class _HomePageState extends State<HomePage> {
       ))),
     ));
   }
+}
+
+class GamePlayerPage extends StatefulWidget {
+  const GamePlayerPage({super.key, required this.game});
+  final Game game;
+
+  @override
+  State<GamePlayerPage> createState() => _GamePlayerPageState();
+}
+
+class _GamePlayerPageState extends State<GamePlayerPage> {
+  late final String _viewType;
+
+  @override
+  void initState() {
+    super.initState();
+    _viewType = 'gamecenter-iframe-${widget.game.hashCode}-${identityHashCode(this)}';
+    ui_web.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
+      final frame = html.IFrameElement()
+        ..src = widget.game.url
+        ..title = widget.game.name
+        ..allow = 'fullscreen; autoplay; gamepad'
+        ..setAttribute('allowfullscreen', 'true')
+        ..style.border = '0'
+        ..style.width = '100%'
+        ..style.height = '100%';
+      return frame;
+    });
+  }
+
+  Future<void> _openOutside() async {
+    final uri = Uri.tryParse(widget.game.url);
+    if (uri == null) return;
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('לא הצלחנו לפתוח את המשחק בחלון חדש.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Directionality(
+    textDirection: TextDirection.rtl,
+    child: Scaffold(
+      appBar: AppBar(
+        backgroundColor: panel,
+        title: Text(widget.game.name),
+        leading: IconButton(
+          tooltip: 'חזרה למשחקים',
+          icon: const Icon(Icons.arrow_back_rounded),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: [
+          TextButton.icon(
+            onPressed: _openOutside,
+            icon: const Icon(Icons.open_in_new_rounded),
+            label: const Text('פתיחה באתר המשחק'),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: HtmlElementView(viewType: _viewType),
+          ),
+          Container(
+            width: double.infinity,
+            color: panel,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+            child: const Text(
+              'אם המשחק לא נטען, ייתכן שהאתר שלו חוסם הצגה בתוך חלון. אפשר לפתוח אותו באתר המקורי.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: muted, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class GameCard extends StatelessWidget {
