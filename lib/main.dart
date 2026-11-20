@@ -1,295 +1,214 @@
 import 'package:flutter/material.dart';
 
-void main() => runApp(const TasksApp());
+void main() => runApp(const GameCenterApp());
 
-class TasksApp extends StatelessWidget {
-  const TasksApp({super.key});
+const bg = Color(0xFF090D1A);
+const panel = Color(0xFF141B2E);
+const muted = Color(0xFF98A4BD);
+const accent = Color(0xFF8B5CF6);
 
+class GameCenterApp extends StatelessWidget {
+  const GameCenterApp({super.key});
   @override
-  Widget build(BuildContext context) {
-    const seed = Color(0xFF6750A4);
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'המשימות שלי',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light),
-        scaffoldBackgroundColor: const Color(0xFFF7F5FA),
-        fontFamily: 'Arial',
-      ),
-      home: const TasksHomePage(),
-    );
-  }
+  Widget build(BuildContext context) => MaterialApp(
+    debugShowCheckedModeBanner: false,
+    title: 'GameCenter',
+    theme: ThemeData(
+      brightness: Brightness.dark,
+      scaffoldBackgroundColor: bg,
+      colorScheme: ColorScheme.fromSeed(seedColor: accent, brightness: Brightness.dark),
+      fontFamily: 'Arial',
+      useMaterial3: true,
+    ),
+    home: const HomePage(),
+  );
 }
 
-enum TaskFilter { all, active, completed }
-
-class TaskItem {
-  TaskItem(this.title);
-  final String title;
-  bool isDone = false;
+class Game {
+  Game(this.name, this.category, this.emoji, this.colors, {this.description = 'משחק מהנה שמחכה לך'});
+  final String name, category, emoji, description;
+  final List<Color> colors;
 }
 
-class TasksHomePage extends StatefulWidget {
-  const TasksHomePage({super.key});
-
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
   @override
-  State<TasksHomePage> createState() => _TasksHomePageState();
+  State<HomePage> createState() => _HomePageState();
 }
 
-class _TasksHomePageState extends State<TasksHomePage> {
-  final List<TaskItem> _tasks = [];
-  TaskFilter _filter = TaskFilter.all;
+class _HomePageState extends State<HomePage> {
+  final search = TextEditingController();
+  String category = 'הכול';
+  final categories = ['הכול', 'חשיבה', 'פעולה', 'מרוצים', 'ספורט', 'הרפתקאות', 'ילדים'];
+  final games = <Game>[
+    Game('מרוץ החלל', 'מרוצים', '🚀', [Color(0xFF2563EB), Color(0xFF7C3AED)], description: 'טוסו בין כוכבים ואתגרים'),
+    Game('אתגר המוח', 'חשיבה', '🧩', [Color(0xFF0F9D8A), Color(0xFF22C55E)], description: 'חדדו את החשיבה עם חידות'),
+    Game('זירת הגיבורים', 'פעולה', '⚔️', [Color(0xFFEA580C), Color(0xFFDC2626)], description: 'הרפתקה מלאה באקשן'),
+    Game('כוכב הכדורסל', 'ספורט', '🏀', [Color(0xFFEA8A16), Color(0xFFB45309)], description: 'קלעו לסל ושברו שיאים'),
+    Game('אי ההרפתקאות', 'הרפתקאות', '🏝️', [Color(0xFF0891B2), Color(0xFF2563EB)], description: 'גלו עולם חדש ומסתורי'),
+    Game('עולם החיות', 'ילדים', '🦊', [Color(0xFFDB2777), Color(0xFF9333EA)], description: 'משחק צבעוני לכל המשפחה'),
+    Game('קפיצת הנינג׳ה', 'פעולה', '🥷', [Color(0xFF475569), Color(0xFF7C3AED)]),
+    Game('פאזל הצבעים', 'חשיבה', '🎨', [Color(0xFF0D9488), Color(0xFF0EA5E9)]),
+  ];
 
-  int get _completedCount => _tasks.where((task) => task.isDone).length;
+  List<Game> get visible => games.where((g) =>
+    (category == 'הכול' || g.category == category) &&
+    ('\${g.name} \${g.category}'.toLowerCase().contains(search.text.toLowerCase()))
+  ).toList();
 
-  List<TaskItem> get _visibleTasks => _tasks.where((task) {
-        switch (_filter) {
-          case TaskFilter.active:
-            return !task.isDone;
-          case TaskFilter.completed:
-            return task.isDone;
-          case TaskFilter.all:
-            return true;
-        }
-      }).toList();
-
-  Future<void> _addTask() async {
-    final controller = TextEditingController();
-    final title = await showDialog<String>(
-      context: context,
-      builder: (dialogContext) => Directionality(
-        textDirection: TextDirection.rtl,
-        child: AlertDialog(
-          title: const Text('משימה חדשה'),
-          content: TextField(
-            controller: controller,
-            autofocus: true,
-            textInputAction: TextInputAction.done,
-            onSubmitted: (_) => Navigator.pop(dialogContext, controller.text),
-            decoration: InputDecoration(
-              hintText: 'מה צריך לעשות?',
-              filled: true,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('ביטול'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, controller.text),
-              child: const Text('הוספה'),
-            ),
-          ],
-        ),
-      ),
-    );
-    controller.dispose();
-    if (title != null && title.trim().isNotEmpty) {
-      setState(() => _tasks.insert(0, TaskItem(title.trim())));
-    }
-  }
-
-  void _deleteTask(TaskItem task) {
-    setState(() => _tasks.remove(task));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('המשימה נמחקה')),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final visible = _visibleTasks;
-    final total = _tasks.length;
-    final progress = total == 0 ? 0.0 : _completedCount / total;
-
-    return Directionality(
+  void addGame() {
+    final name = TextEditingController();
+    final link = TextEditingController();
+    showDialog(context: context, builder: (ctx) => Directionality(
       textDirection: TextDirection.rtl,
-      child: Scaffold(
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: _addTask,
-          icon: const Icon(Icons.add),
-          label: const Text('משימה חדשה'),
-        ),
-        body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(22, 28, 22, 110),
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: Icon(Icons.checklist_rounded,
-                            size: 29, color: Theme.of(context).colorScheme.primary),
-                      ),
-                      const SizedBox(width: 14),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('המשימות שלי',
-                                style: TextStyle(fontSize: 27, fontWeight: FontWeight.w800)),
-                            SizedBox(height: 3),
-                            Text('מתקדמים צעד אחד בכל פעם',
-                                style: TextStyle(color: Color(0xFF77717F), fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 26),
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF6750A4), Color(0xFF8B75C7)],
-                        begin: Alignment.topRight,
-                        end: Alignment.bottomLeft,
-                      ),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('ההתקדמות שלך',
-                            style: TextStyle(color: Colors.white70, fontSize: 14)),
-                        const SizedBox(height: 8),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text('$_completedCount',
-                                style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 6, right: 7),
-                              child: Text('מתוך $total משימות הושלמו',
-                                  style: const TextStyle(color: Colors.white, fontSize: 14)),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: LinearProgressIndicator(
-                            value: progress,
-                            minHeight: 9,
-                            backgroundColor: Colors.white24,
-                            valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 27),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text('רשימת משימות',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                      ),
-                      Text('$total בסך הכול',
-                          style: const TextStyle(color: Color(0xFF77717F), fontSize: 13)),
-                    ],
-                  ),
-                  const SizedBox(height: 13),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      _filterChip('הכול', TaskFilter.all),
-                      _filterChip('לביצוע', TaskFilter.active),
-                      _filterChip('הושלמו', TaskFilter.completed),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  if (visible.isEmpty)
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 38, horizontal: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(Icons.inbox_rounded, size: 42,
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.6)),
-                          const SizedBox(height: 10),
-                          Text(_tasks.isEmpty ? 'עדיין אין משימות' : 'אין משימות בתצוגה הזו',
-                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                          const SizedBox(height: 5),
-                          const Text('אפשר להוסיף משימה חדשה באמצעות הכפתור למטה',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(color: Color(0xFF77717F))),
-                        ],
-                      ),
-                    )
-                  else
-                    ...visible.map(_taskCard),
-                ],
+      child: AlertDialog(
+        backgroundColor: panel,
+        title: const Text('הוספת משחק חדש'),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: name, decoration: const InputDecoration(labelText: 'שם המשחק')),
+          const SizedBox(height: 10),
+          TextField(controller: link, decoration: const InputDecoration(labelText: 'קישור למשחק (לא חובה)')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('ביטול')),
+          FilledButton(onPressed: () {
+            if (name.text.trim().isNotEmpty) setState(() => games.insert(0, Game(name.text.trim(), 'חשיבה', '🎮', [accent, const Color(0xFF2563EB)])));
+            Navigator.pop(ctx);
+          }, child: const Text('הוספה')),
+        ],
+      ),
+    ));
+  }
+
+  @override
+  void dispose() { search.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    final wide = MediaQuery.sizeOf(context).width > 760;
+    return Directionality(textDirection: TextDirection.rtl, child: Scaffold(
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: addGame, backgroundColor: accent,
+        icon: const Icon(Icons.add_rounded), label: const Text('הוסף משחק'),
+      ),
+      body: SafeArea(child: Center(child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1180),
+        child: CustomScrollView(slivers: [
+          SliverToBoxAdapter(child: Padding(
+            padding: EdgeInsets.fromLTRB(wide ? 34 : 18, 20, wide ? 34 : 18, 0),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                Container(width: 46, height: 46, decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [accent, Color(0xFF22D3EE)]),
+                  borderRadius: BorderRadius.circular(15)),
+                  child: const Icon(Icons.sports_esports_rounded, color: Colors.white, size: 27)),
+                const SizedBox(width: 12),
+                const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text('GAMECENTER', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18, letterSpacing: 1.4)),
+                  Text('כל המשחקים במקום אחד', style: TextStyle(color: muted, fontSize: 12)),
+                ]),
+                const Spacer(),
+                if (wide) TextButton.icon(onPressed: addGame, icon: const Icon(Icons.add), label: const Text('הוסף משחק')),
+                IconButton(onPressed: () => setState(() { category = 'הכול'; search.clear(); }), icon: const Icon(Icons.home_rounded), tooltip: 'דף הבית'),
+              ]),
+              const SizedBox(height: 28),
+              Container(
+                width: double.infinity, padding: EdgeInsets.all(wide ? 30 : 22),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(26),
+                  gradient: const LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft,
+                    colors: [Color(0xFF31216D), Color(0xFF17264B), Color(0xFF102C3D)]),
+                  border: Border.all(color: Colors.white.withValues(alpha: .08)),
+                ),
+                child: Stack(children: [
+                  Positioned(left: 10, top: -14, child: Icon(Icons.videogame_asset_rounded, size: wide ? 130 : 90, color: Colors.white.withValues(alpha: .07))),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Container(padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
+                      decoration: BoxDecoration(color: Colors.white.withValues(alpha: .12), borderRadius: BorderRadius.circular(30)),
+                      child: const Text('🎮  ברוכים הבאים ל־GameCenter', style: TextStyle(fontSize: 12))),
+                    const SizedBox(height: 15),
+                    Text('המשחק הבא שלך\\nמתחיל כאן', style: TextStyle(fontSize: wide ? 35 : 29, height: 1.15, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 9),
+                    const Text('מגלים, משחקים ונהנים — כל עולם הגיימינג במקום אחד.', style: TextStyle(color: Color(0xFFD1D5E8), fontSize: 14)),
+                    const SizedBox(height: 19),
+                    FilledButton.icon(onPressed: () => setState(() => category = 'הכול'),
+                      style: FilledButton.styleFrom(backgroundColor: const Color(0xFF8B5CF6), foregroundColor: Colors.white),
+                      icon: const Icon(Icons.explore_rounded), label: const Text('גלו את המשחקים')),
+                  ]),
+                ]),
               ),
-            ),
+              const SizedBox(height: 25),
+              TextField(controller: search, onChanged: (_) => setState(() {}),
+                decoration: InputDecoration(
+                  hintText: 'חיפוש משחקים...',
+                  hintStyle: const TextStyle(color: muted),
+                  prefixIcon: const Icon(Icons.search_rounded, color: muted),
+                  filled: true, fillColor: panel,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 16),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                )),
+              const SizedBox(height: 22),
+              const Text('קטגוריות משחקים', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+              const SizedBox(height: 12),
+              SizedBox(height: 42, child: ListView.separated(scrollDirection: Axis.horizontal,
+                itemCount: categories.length, separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (ctx, i) => ChoiceChip(label: Text(categories[i]), selected: category == categories[i],
+                  onSelected: (_) => setState(() => category = categories[i]),
+                  selectedColor: accent, backgroundColor: panel, side: BorderSide.none,
+                  labelStyle: TextStyle(color: category == categories[i] ? Colors.white : const Color(0xFFCBD5E1), fontWeight: FontWeight.w600)))),
+              const SizedBox(height: 25),
+              Row(children: [
+                const Text('🔥  משחקים מומלצים', style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800)),
+                const Spacer(), Text('\${visible.length} משחקים', style: const TextStyle(color: muted, fontSize: 12)),
+              ]),
+              const SizedBox(height: 14),
+            ]),
+          )),
+          SliverPadding(padding: EdgeInsets.fromLTRB(wide ? 34 : 18, 0, wide ? 34 : 18, 100),
+            sliver: SliverLayoutBuilder(builder: (context, constraints) {
+              final width = constraints.crossAxisExtent;
+              final count = width > 900 ? 4 : width > 580 ? 3 : 2;
+              return SliverGrid(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: count, mainAxisSpacing: 14, crossAxisSpacing: 14, childAspectRatio: wide ? 1.13 : .91),
+                delegate: SliverChildBuilderDelegate((ctx, i) => GameCard(game: visible[i], onTap: () => showDialog(context: context, builder: (ctx) => AlertDialog(
+                  backgroundColor: panel, title: Text(visible[i].name),
+                  content: Text('\${visible[i].description}.\\n\\nאפשר לחבר כאן את קישור המשחק ולפתוח אותו מתוך GameCenter.'),
+                  actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('סגירה'))],
+                ))), childCount: visible.length),
+              );
+            }),
           ),
-        ),
-      ),
-    );
+        ]),
+      ))),
+    ));
   }
+}
 
-  Widget _filterChip(String label, TaskFilter filter) {
-    final selected = _filter == filter;
-    return ChoiceChip(
-      label: Text(label),
-      selected: selected,
-      onSelected: (_) => setState(() => _filter = filter),
-      showCheckmark: false,
-      labelStyle: TextStyle(
-        color: selected ? Colors.white : const Color(0xFF625D68),
-        fontWeight: FontWeight.w600,
-      ),
-      selectedColor: Theme.of(context).colorScheme.primary,
-      backgroundColor: Colors.white,
-      side: BorderSide.none,
-    );
-  }
-
-  Widget _taskCard(TaskItem task) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFECE8F0)),
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsetsDirectional.only(start: 8, end: 8, top: 5, bottom: 5),
-        leading: Checkbox(
-          value: task.isDone,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-          onChanged: (value) => setState(() => task.isDone = value ?? false),
-        ),
-        title: Text(
-          task.title,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: task.isDone ? const Color(0xFF99939F) : const Color(0xFF292531),
-            decoration: task.isDone ? TextDecoration.lineThrough : TextDecoration.none,
-          ),
-        ),
-        trailing: IconButton(
-          tooltip: 'מחיקת משימה',
-          onPressed: () => _deleteTask(task),
-          icon: const Icon(Icons.delete_outline_rounded),
-          color: const Color(0xFF9A929F),
-        ),
-      ),
-    );
-  }
+class GameCard extends StatelessWidget {
+  const GameCard({super.key, required this.game, required this.onTap});
+  final Game game;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) => Material(
+    color: panel, borderRadius: BorderRadius.circular(20), clipBehavior: Clip.antiAlias,
+    child: InkWell(onTap: onTap, child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Expanded(child: Container(
+        decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: game.colors)),
+        child: Stack(children: [
+          Positioned(left: -15, bottom: -22, child: Icon(Icons.blur_circular, size: 115, color: Colors.white.withValues(alpha: .10))),
+          Center(child: Text(game.emoji, style: const TextStyle(fontSize: 54))),
+          Positioned(top: 10, right: 10, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+            decoration: BoxDecoration(color: Colors.black.withValues(alpha: .22), borderRadius: BorderRadius.circular(20)),
+            child: Text(game.category, style: const TextStyle(fontSize: 10, color: Colors.white)))),
+        ]),
+      )),
+      Padding(padding: const EdgeInsets.fromLTRB(12, 10, 12, 12), child: Row(children: [
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(game.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 14)),
+          const SizedBox(height: 3), Text(game.description, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: muted, fontSize: 10)),
+        ])),
+        const SizedBox(width: 5), const Icon(Icons.play_circle_fill_rounded, color: Color(0xFFA78BFA), size: 25),
+      ])),
+    ])),
+  );
 }
