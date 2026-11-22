@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> {
     Game('צביעה לפי מספרים', 'יצירה', '🎨', [Color(0xFFDB2777), Color(0xFF9333EA)], 'https://visu.network/games/', description: 'צבעו תמונות לפי מספרים'),
     Game('אתגר מילים יומי', 'מילים', '🔤', [Color(0xFF0D9488), Color(0xFF0EA5E9)], 'https://visu.network/games/', description: 'אתגר מילים בסגנון Wordle'),
     Game('עוד משחקים', 'עוד', '🎮', [Color(0xFF6D28D9), Color(0xFF0891B2)], 'https://www.mattegames.com/', description: 'גלו משחקים נוספים בחינם'),
+    Game('Pet Care', 'עוד', '🐾', [Color(0xFF16A085), Color(0xFF8B5CF6)], 'https://gilicohenhoshen-ui.github.io/gamecenter/pet-care/', description: 'טפלי בכלב ובחתולה בתלת־ממד'),
   ];
 
   List<Game> get visible => games.where((g) =>
