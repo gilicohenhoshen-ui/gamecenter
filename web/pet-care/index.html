@@ -56,7 +56,20 @@ function buildPet(type){
  for(const x of [-.52,.52])for(const z of [-.24,.28]){const leg=new THREE.Group();leg.position.set(x,.72,z);pet.add(leg);blob(leg,fur,[0,-.3,0],[.19,.48,.2]);blob(leg,type==='dog'?dark:fur,[0,-.55,.03],[.2,.13,.23]);legs.push(leg);}
  if(type==='cat'){const whisker=mat(0x716b69);for(const side of [-1,1])for(let j=0;j<2;j++){const line=new THREE.Mesh(new THREE.CylinderGeometry(.008,.008,.36,6),whisker);line.position.set(side*.3,-.2,.52);line.rotation.z=side*(.25+j*.2);head.add(line);}}
 }
+
 buildPet('dog');
+// A simple 3D hand and forearm that reaches into the scene during care actions.
+const hand=new THREE.Group();scene.add(hand);hand.visible=false;
+const skin=mat(0xe9b58f),skinShade=mat(0xd99a78);
+function handBall(pos,scale,material=skin){const m=new THREE.Mesh(sphere,material);m.position.set(...pos);m.scale.set(...scale);m.castShadow=true;hand.add(m);return m;}
+const forearm=new THREE.Mesh(new THREE.CapsuleGeometry(.19,.95,6,12),skin);forearm.rotation.z=Math.PI/2;forearm.position.set(-.48,0,0);forearm.castShadow=true;hand.add(forearm);
+handBall([.18,0,.02],[.34,.22,.16]);
+for(let i=0;i<4;i++){const finger=handBall([.48+i*.035,.13-i*.085,.025],[.24,.065,.07]);finger.rotation.z=-.12+i*.07;}
+const thumb=handBall([.22,-.2,.12],[.19,.075,.08]);thumb.rotation.z=-.65;
+const handCarrot=new THREE.Group();hand.add(handCarrot);const carrotMesh=new THREE.Mesh(new THREE.ConeGeometry(.11,.42,16),mat(0xf28a32));carrotMesh.rotation.z=-Math.PI/2;carrotMesh.position.set(.55,-.12,.16);handCarrot.add(carrotMesh);
+const leaf=new THREE.Mesh(new THREE.ConeGeometry(.07,.2,8),mat(0x4f9b55));leaf.rotation.z=Math.PI/2;leaf.position.set(.34,-.12,.16);handCarrot.add(leaf);
+const sponge=handBall([.58,-.11,.14],[.19,.14,.1],mat(0xffdc72));sponge.visible=false;
+let handAction='';
 const ball=new THREE.Group();scene.add(ball);const ballMesh=new THREE.Mesh(new THREE.SphereGeometry(.22,24,16),new THREE.MeshStandardMaterial({color:0xf05c78,roughness:.45}));ball.add(ballMesh);ball.position.set(1.55,.23,.2);
 const flowers=new THREE.Group();scene.add(flowers);for(let i=0;i<16;i++){const a=i*Math.PI*2/16,r=3.1+Math.random()*1.3;const stem=new THREE.Mesh(new THREE.CylinderGeometry(.018,.025,.35,6),mat(0x477c45));stem.position.set(Math.cos(a)*r,.17,Math.sin(a)*r);flowers.add(stem);const bloom=blob(flowers,[0xf3c8e8,0xffe2a5,0xffffff][i%3],[Math.cos(a)*r,.39,Math.sin(a)*r],[.11,.11,.11]);}
 let mood='idle',actionUntil=0,coins=120,stats={happy:75,food:65,clean:70},rot=0,drag=false,lastX=0;
@@ -67,11 +80,21 @@ document.querySelectorAll('[data-action]').forEach(btn=>btn.onclick=()=>{const a
 if(a==='bath'){stats.clean=100;stats.happy=Math.max(0,stats.happy-2);mood='bath';say('איזה ריח נעים! ✨');}
 if(a==='play'){stats.happy=Math.min(100,stats.happy+22);stats.food=Math.max(0,stats.food-8);mood='play';say('איזה כיף לשחק! 🎾');}
 if(a==='cuddle'){stats.happy=Math.min(100,stats.happy+14);mood='love';say('גררר... איזה כיף ליטופים 💗');}
-coins+=a==='play'?4:2;actionUntil=performance.now()+2600;updateUI();});
+coins+=a==='play'?4:2;handAction=a;hand.visible=true;handCarrot.visible=a==='feed';sponge.visible=a==='bath';actionUntil=performance.now()+2600;updateUI();});
 function say(t){document.querySelector('#hint').textContent=t;}
 canvas.addEventListener('pointerdown',e=>{drag=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId);});canvas.addEventListener('pointermove',e=>{if(drag){rot+=(e.clientX-lastX)*.009;lastX=e.clientX;}});canvas.addEventListener('pointerup',()=>drag=false);canvas.addEventListener('pointercancel',()=>drag=false);
 function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}new ResizeObserver(resize).observe(stage);resize();
-const clock=new THREE.Clock();function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();const active=performance.now()<actionUntil;pet.rotation.y=rot+Math.sin(t*.5)*.05;pet.position.y=Math.abs(Math.sin(t*2.3))*.045;
+const clock=new THREE.Clock();function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();const active=performance.now()<actionUntil;
+if(!active){hand.visible=false;}else{
+ hand.visible=handAction!=='play';
+ const target=handAction==='feed'?[-.72,1.7,1.05]:handAction==='bath'?[.35,1.85,1.05]:[-.78,2.12,1.0];
+ const wave=handAction==='cuddle'?Math.sin(t*9)*.12:Math.sin(t*5)*.035;
+ hand.position.set(target[0]+wave,target[1]+Math.sin(t*7)*.035,target[2]);
+ hand.rotation.z=handAction==='cuddle'?.35:handAction==='bath'?.15:-.12;
+ if(handAction==='bath')sponge.position.y=Math.sin(t*12)*.08;
+ if(handAction==='feed')handCarrot.rotation.z=Math.sin(t*7)*.12;
+}
+pet.rotation.y=rot+Math.sin(t*.5)*.05;pet.position.y=Math.abs(Math.sin(t*2.3))*.045;
 head.rotation.z=Math.sin(t*1.4)*.045;head.rotation.x=mood==='love'&&active?-.22:Math.sin(t*1.7)*.025;
 tail.rotation.x=Math.sin(t*(mood==='happy'||mood==='play'?12:4))*(kind==='dog'?.65:.4);tail.rotation.z=Math.sin(t*3)*.18;
 legs.forEach((leg,i)=>{const swing=(mood==='play'&&active)?Math.sin(t*12+i*Math.PI)*.65:Math.sin(t*2+i*Math.PI)*.035;leg.rotation.x=swing;});
